@@ -2,12 +2,12 @@ import { Client, GatewayIntentBits, Guild, Routes, PermissionFlagsBits } from 'd
 import { REST } from '@discordjs/rest';
 import dotenv from "dotenv";
 
-import orders from './commands/order.js';
 import addRolesCommand from './commands/addRoles.js';
 import banCommand from './commands/ban.js';
 import unbanCommand from './commands/unban.js';
 import inviteCommand from './commands/invite.js';
 import removeRolesCommand from './commands/removeRole.js';
+import addSwearWordCommand from './commands/addSwearWord.js';
 
 dotenv.config();
 
@@ -31,6 +31,11 @@ client.on('ready', () => {
 
 client.on('interactionCreate', async interaction => {
     if(!interaction.isCommand()) return; // If the interaction isn't a command, return
+
+    //general chat filter
+    let swear_words = ["시발",
+                        "년",
+                        ];
 
     if(interaction.isChatInputCommand()){
         switch(interaction.commandName){
@@ -119,6 +124,38 @@ client.on('interactionCreate', async interaction => {
                 });
                 await interaction.reply(`Here is your invite link:\n${invite}`);
                 break;
+            
+            //TODO: make a spreadsheet of swear words
+            case 'addswearword':
+                if(interaction.member && !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)){
+                    await interaction.reply("You don't have permission to use this command.");
+                    return;
+                }
+
+                const swear_word = interaction.options.getString('swear_word');
+
+                //divide by spaces if there are multiple words
+                const words = swear_word.split(" ");
+                
+                for(let i = 0; i < words.length; i++){
+                    //if swear word is already in the list
+                    if(swear_words.includes(words[i])){
+                        await interaction.reply(`${words[i]} is already in the list of swear words`);
+                        return;
+                    }
+                }
+
+                //add swear word to the list
+                for(let i = 0; i < words.length; i++){
+                    swear_words.push(words[i]);
+                }
+                await interaction.reply(`${swear_word} has been added to the list of swear words\nHere is the list of swear words: ${swear_words.join(", ")}`); 
+                for(let i = 0; i < swear_words.length; i++){
+                    console.log(`"${swear_words[i]}",`);
+                }
+                
+                break;
+            
             default:
                 await interaction.reply(`The command doesn\'t exist`);
                 break;
@@ -129,7 +166,7 @@ client.on('interactionCreate', async interaction => {
 
 async function main(){
 
-    const commands = [orders, addRolesCommand, banCommand, unbanCommand, inviteCommand, removeRolesCommand];
+    const commands = [addRolesCommand, removeRolesCommand, banCommand, unbanCommand, addSwearWordCommand, inviteCommand];
     
     try{
         console.log(`Started refreshing application (/) commands.`);
