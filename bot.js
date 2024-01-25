@@ -3,10 +3,11 @@ import { REST } from '@discordjs/rest';
 import dotenv from "dotenv";
 
 import orders from './commands/order.js';
-import rolesCommand from './commands/roles.js';
+import addRolesCommand from './commands/addRoles.js';
 import banCommand from './commands/ban.js';
 import unbanCommand from './commands/unban.js';
 import inviteCommand from './commands/invite.js';
+import removeRolesCommand from './commands/removeRole.js';
 
 dotenv.config();
 
@@ -33,15 +34,36 @@ client.on('interactionCreate', async interaction => {
 
     if(interaction.isChatInputCommand()){
         switch(interaction.commandName){
-            case 'orders':
-                await interaction.reply('You ordered a ' + interaction.options.getString('food'));
-                break;
+
             case 'addrole':
+                if(interaction.member && !interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)){
+                    await interaction.reply("You don't have permission to use this command.");
+                    return;
+                }
+                const target = interaction.options.getUser('target');
                 const role = interaction.options.getRole('new_role');
-                await interaction.member.roles.add(role);
-                await interaction.reply('You have been given the role ' + role.name);
+                await interaction.guild.members.cache.get(target.id).roles.add(role);
+                await interaction.reply(`${target} has been given the role ${role}`);
                 break;
-                
+            
+            case 'removerole':
+                if(interaction.member && !interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)){
+                    await interaction.reply("You don't have permission to use this command.");
+                    return;
+                }
+
+                //if role is not in the server or user doesn't have the role
+                if(!interaction.guild.roles.cache.has(interaction.options.getRole('new_role').id) || !interaction.guild.members.cache.get(interaction.options.getUser('target').id).roles.cache.has(interaction.options.getRole('new_role').id)){
+                    await interaction.reply("The user doesn't have that role");
+                    return;
+                }
+
+                const target2 = interaction.options.getUser('target');
+                const role2 = interaction.options.getRole('new_role');
+                await interaction.guild.members.cache.get(target2.id).roles.remove(role2);
+                await interaction.reply(`${target2} has been removed from the role ${role2}`);
+                break;
+
             case 'ban':
                 if(interaction.member && !interaction.member.permissions.has(PermissionFlagsBits.BanMembers)){
                     await interaction.reply("You don't have permission to use this command.");
@@ -107,7 +129,7 @@ client.on('interactionCreate', async interaction => {
 
 async function main(){
 
-    const commands = [orders, rolesCommand, banCommand, unbanCommand, inviteCommand];
+    const commands = [orders, addRolesCommand, banCommand, unbanCommand, inviteCommand, removeRolesCommand];
     
     try{
         console.log(`Started refreshing application (/) commands.`);
